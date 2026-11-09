@@ -1,7 +1,7 @@
 /*
-  CODECONTROL 4IO - BLE ONLY v0.2.0 (Arduino IDE)
+  CODECONTROL 4IO - BLE ONLY v0.2.1 (Arduino IDE)
   Placa: ESP32 classico / ESP32 Dev Module.
-  Bibliotecas: NimBLE-Arduino 1.4.3 e ArduinoJson 6.21.6.
+  Bibliotecas: NimBLE-Arduino 2.x (recomendado 2.5.2) e ArduinoJson 6.x.
   Pacote de placa: esp32 by Espressif Systems 2.0.17.
 
   Saidas: GPIO 26,25,33,32    | Entradas: GPIO 35,34,39,36
@@ -31,7 +31,7 @@ constexpr bool INPUT_ACTIVE_LOW = false;         // Configurar conforme circuito
 constexpr int RESET_BUTTON_GPIO = 0;             // Botao BOOT do ESP32, em operacao
 constexpr uint32_t RESET_HOLD_MS = 8000;         // Segurar 8s para limpar nomes (nao a chave)
 
-static const char* VERSION = "0.2.0-ble-only";
+static const char* VERSION = "0.2.1-ble-only";
 static const char* SERVICE_UUID = "8a12f100-587c-4c9f-9603-2f83c1a64001";
 static const char* WRITE_UUID   = "8a12f101-587c-4c9f-9603-2f83c1a64001";
 static const char* NOTIFY_UUID  = "8a12f102-587c-4c9f-9603-2f83c1a64001";
@@ -241,13 +241,13 @@ void handleJson(const String& line) {
 }
 
 class ServerEvents : public NimBLEServerCallbacks {
-  void onConnect(NimBLEServer* server) override {
+  void onConnect(NimBLEServer* server, NimBLEConnInfo& connInfo) override {
     bleConnected = true;
     authenticated = false;
     nonce = "";
     authFailures = 0;
   }
-  void onDisconnect(NimBLEServer* server) override {
+  void onDisconnect(NimBLEServer* server, NimBLEConnInfo& connInfo, int reason) override {
     bleConnected = false;
     authenticated = false;
     nonce = "";
@@ -256,7 +256,7 @@ class ServerEvents : public NimBLEServerCallbacks {
 };
 
 class ReceiveEvents : public NimBLECharacteristicCallbacks {
-  void onWrite(NimBLECharacteristic* characteristic) override {
+  void onWrite(NimBLECharacteristic* characteristic, NimBLEConnInfo& connInfo) override {
     std::string chunk = characteristic->getValue();
     if (rxMutex == nullptr || xSemaphoreTake(rxMutex, pdMS_TO_TICKS(40)) != pdTRUE) return;
     for (char ch : chunk) {
@@ -312,7 +312,8 @@ void setup() {
   service->start();
   NimBLEAdvertising* advertising = NimBLEDevice::getAdvertising();
   advertising->addServiceUUID(SERVICE_UUID);
-  advertising->setScanResponse(true);
+  advertising->enableScanResponse(true);
+  advertising->setName(deviceId.c_str());
   advertising->start();
 
   Serial.println("\n=== CODECONTROL 4IO BLE ONLY ===");
