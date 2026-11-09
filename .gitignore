@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.pio/
+.vscode/
+.env
+.env.*
+!.env.example
+.DS_Store
+firmware/include/private_config.h
